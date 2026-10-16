@@ -10,10 +10,10 @@ import (
 	"github.com/ip2location/ip2location-go"
 	"github.com/sixdouglas/suncalc"
 	flag "github.com/spf13/pflag"
-	"os"
-	"time"
 	"net"
+	"os"
 	"strings"
+	"time"
 )
 
 const geolocCacheFile = "/tmp/zclock_geoloc_cache"
@@ -58,19 +58,19 @@ func getPublicIpAddr() string {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
-	
+
 	ifaces, err := net.Interfaces()
 	handleError(err)
-	
+
 	if !availableIface(ifaces) {
 		fmt.Fprintln(os.Stderr, "Network not available")
 		os.Exit(1)
 	}
-	
-	cfg := externalip.DefaultConsensusConfig().WithTimeout(time.Second*2)
+
+	cfg := externalip.DefaultConsensusConfig().WithTimeout(time.Second * 2)
 	consensus := externalip.NewConsensus(cfg, nil)
 	consensus.UseIPProtocol(4)
-	consensus.AddVoter(externalip.NewHTTPSource("https://myexternalip.com/raw"), 3) 
+	consensus.AddVoter(externalip.NewHTTPSource("https://myexternalip.com/raw"), 3)
 	consensus.AddVoter(externalip.NewHTTPSource("http://ifconfig.io/ip"), 1)
 
 	tip, err := consensus.ExternalIP()
@@ -133,13 +133,16 @@ func getSolarNoon(now time.Time, lat, long float64) time.Time {
 }
 
 func currentSolarHour(lat, long float64) (int, int) {
-	var now = time.Now()
+	return solarHourAt(time.Now(), lat, long)
+}
 
+func solarHourAt(now time.Time, lat, long float64) (int, int) {
 	solarNoon := getSolarNoon(now, lat, long)
-	tzNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
-
-	diffNoon := solarNoon.Sub(tzNoon)
-	diffTime := now.Add(-diffNoon)
+	// Anchor solar noon at 12:00 UTC so the resulting clock is independent
+	// of the machine's timezone and daylight-saving offset.
+	noonUTC := solarNoon.UTC()
+	referenceNoon := time.Date(noonUTC.Year(), noonUTC.Month(), noonUTC.Day(), 12, 0, 0, 0, time.UTC)
+	diffTime := now.UTC().Add(referenceNoon.Sub(solarNoon))
 
 	return diffTime.Hour(), diffTime.Minute()
 }
@@ -147,8 +150,8 @@ func currentSolarHour(lat, long float64) (int, int) {
 func availableIface(ifaces []net.Interface) bool {
 	for _, i := range ifaces {
 		f := (net.FlagUp | net.FlagRunning)
-		if i.Flags & f == f {
-			s, err := os.ReadFile("/sys/class/net/"+i.Name+"/operstate")
+		if i.Flags&f == f {
+			s, err := os.ReadFile("/sys/class/net/" + i.Name + "/operstate")
 			handleError(err)
 			if strings.Trim(string(s), "\n") == "up" {
 				return true
@@ -210,7 +213,7 @@ func main() {
 
 	if *numeric {
 		cmdMode = true
-		fmt.Printf("%d:%d\n", hour, minute)
+		fmt.Printf("%d:%02d\n", hour, minute)
 	}
 
 	if cmdMode {
