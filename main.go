@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const geolocCacheFile = "/tmp/zcock_geoloc_cache"
+const geolocCacheFile = "/tmp/zclock_geoloc_cache"
 
 func handleError(err error) {
 	if err != nil {
@@ -49,7 +49,7 @@ func floatToByte(f float32) []byte {
 }
 
 func getPublicIpAddr() string {
-	ipCacheFile := "/tmp/zcock_ip_cache"
+	ipCacheFile := "/tmp/zclock_ip_cache"
 
 	if _, err := os.Stat(ipCacheFile); err == nil {
 		ip, err := os.ReadFile(ipCacheFile)

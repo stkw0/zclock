@@ -1,4 +1,4 @@
-module zcock
+module zclock
 
 go 1.21.3
 
